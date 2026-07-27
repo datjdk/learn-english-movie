@@ -1,65 +1,137 @@
-import Image from "next/image";
+"use client";
+
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import VideoCard from "@/components/VideoCard";
+import SeriesCard from "@/components/SeriesCard";
+import Pagination from "@/components/Pagination";
+import SearchBar from "@/components/SearchBar";
+import Logo from "@/components/Logo";
+import { VIDEOS, buildCatalog, matchesCatalogQuery } from "@/lib/videos";
+
+const PAGE_SIZE = 12;
+
+function HomeContent() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const query = searchParams.get("q") ?? "";
+
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const updateHeight = () => setHeaderHeight(el.offsetHeight);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const catalog = useMemo(() => buildCatalog(VIDEOS), []);
+  const filtered = useMemo(
+    () => catalog.filter((item) => matchesCatalogQuery(item, query)),
+    [catalog, query]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const requestedPage = Number(searchParams.get("page")) || 1;
+  const page = Math.min(Math.max(1, requestedPage), totalPages);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const navigate = useCallback(
+    (updates: { q?: string; page?: number }, mode: "push" | "replace") => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (updates.q !== undefined) {
+        if (updates.q) params.set("q", updates.q);
+        else params.delete("q");
+      }
+      if (updates.page !== undefined) {
+        if (updates.page <= 1) params.delete("page");
+        else params.set("page", String(updates.page));
+      }
+
+      const qs = params.toString();
+      router[mode](qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    if (requestedPage !== page) {
+      navigate({ page }, "replace");
+    }
+  }, [requestedPage, page, navigate]);
+
+  const handleQueryChange = (value: string) => {
+    navigate({ q: value, page: 1 }, "replace");
+  };
+
+  const handlePageChange = (nextPage: number) => {
+    navigate({ page: nextPage }, "push");
+  };
+
+  return (
+    <div className="flex flex-1 flex-col bg-white dark:bg-black">
+      <header
+        ref={headerRef}
+        className="fixed inset-x-0 top-0 z-20 flex flex-col items-center gap-2 border-b border-black/[.08] bg-white/90 px-3 py-3 backdrop-blur-sm sm:flex-row sm:gap-3 sm:px-4 sm:py-4 dark:border-white/[.145] dark:bg-black/90"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
+        <Logo />
+        <SearchBar value={query} onChange={handleQueryChange} />
+      </header>
+
+      <main
+        className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-4 sm:py-6"
+        style={{ marginTop: headerHeight }}
+      >
+        {filtered.length === 0 ? (
+          <p className="mt-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            No videos found.
+          </p>
+        ) : (
+          <>
+            <ul className="grid grid-cols-1 gap-x-4 gap-y-4 xs:grid-cols-2 sm:gap-x-5 sm:gap-y-5 lg:grid-cols-3">
+              {paginated.map((item) =>
+                item.kind === "serie" ? (
+                  <li key={item.serie}>
+                    <SeriesCard
+                      serie={item.serie}
+                      video={item.video}
+                      episodeCount={item.episodeCount}
+                    />
+                  </li>
+                ) : (
+                  <li key={item.video.id}>
+                    <VideoCard video={item.video} />
+                  </li>
+                )
+              )}
+            </ul>
+            <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

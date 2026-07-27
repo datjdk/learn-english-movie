@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# generated video thumbnails (cached frames, not source assets)
+/public/thumbnails/
+
 # production
 /build
 
@@ -39,3 +42,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Claude / Anthropic
+.claude/
+claude.json
+claude.config.json
+.claude.json
+*.claude
