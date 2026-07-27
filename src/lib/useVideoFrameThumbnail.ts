@@ -33,6 +33,7 @@ export function useVideoFrameThumbnail(
 
   useEffect(() => {
     if (!src) return;
+    const videoSrc = src;
 
     let cancelled = false;
     let hls: Hls | null = null;
@@ -98,14 +99,14 @@ export function useVideoFrameThumbnail(
       });
       video.addEventListener("seeked", capture);
 
-      if (!isHlsSource(src) || video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = src;
+      if (!isHlsSource(videoSrc) || video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = videoSrc;
       } else {
         import("hls.js").then(({ default: HlsCtor }) => {
           if (cancelled || !video) return;
           if (!HlsCtor.isSupported()) return;
           hls = new HlsCtor();
-          hls.loadSource(src);
+          hls.loadSource(videoSrc);
           hls.attachMedia(video);
         });
       }
