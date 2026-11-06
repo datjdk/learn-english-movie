@@ -10,7 +10,7 @@ import {
 } from "react";
 import type Hls from "hls.js";
 import { isHlsSource } from "@/lib/isHlsSource";
-import { parseVtt, type SubtitleCue } from "@/lib/parseVtt";
+import type { CuesByLang } from "@/lib/useSubtitleCues";
 
 export type SubtitleOption = {
   lang: string;
@@ -25,6 +25,8 @@ export type VideoPlayerHandle = {
 type VideoPlayerProps = {
   src: string;
   subtitles?: SubtitleOption[];
+  /** Loaded cues per subtitle lang (see useSubtitleCues). */
+  cuesByLang: CuesByLang;
   poster?: string;
   controlsExtra?: ReactNode;
   onTimeUpdate?: (time: number) => void;
@@ -139,6 +141,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
   {
     src,
     subtitles = [],
+    cuesByLang,
     poster,
     controlsExtra,
     onTimeUpdate,
@@ -151,7 +154,6 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [cueText, setCueText] = useState<Record<string, string>>({});
-  const [cuesByLang, setCuesByLang] = useState<Record<string, SubtitleCue[]>>({});
 
   const [isPlaying, setIsPlaying] = useState(false);
   // The src that has played at least once; the poster cover shows until then.
@@ -261,29 +263,6 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
       window.removeEventListener("touchend", stop);
     };
   }, [volumeDragging]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    for (const subtitle of subtitles) {
-      fetch(subtitle.src)
-        .then((res) => res.text())
-        .then((text) => {
-          if (cancelled) return;
-          const parsed = parseVtt(text);
-          setCuesByLang((prev) => ({ ...prev, [subtitle.lang]: parsed }));
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setCuesByLang((prev) => ({ ...prev, [subtitle.lang]: [] }));
-          }
-        });
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [subtitles]);
 
   useEffect(() => {
     const video = videoRef.current;

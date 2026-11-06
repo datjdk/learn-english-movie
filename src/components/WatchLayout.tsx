@@ -9,10 +9,13 @@ import VideoPlayer, {
 } from "@/components/VideoPlayer";
 import TheaterModeIcon from "@/components/TheaterModeIcon";
 import TranscriptPanel from "@/components/TranscriptPanel";
+import { useSubtitleCues } from "@/lib/useSubtitleCues";
 import {
   persistedThumbnailUrl,
   THUMBNAIL_CAPTURE_ENABLED,
 } from "@/lib/useVideoFrameThumbnail";
+
+const NO_SUBTITLES: SubtitleOption[] = [];
 
 type WatchLayoutProps = {
   title: string;
@@ -37,6 +40,7 @@ export default function WatchLayout({
   const [theater, setTheater] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const playerRef = useRef<VideoPlayerHandle>(null);
+  const cuesByLang = useSubtitleCues(subtitles ?? NO_SUBTITLES);
 
   const defaultLang =
     subtitles?.find((subtitle) => subtitle.lang === "en")?.lang ??
@@ -90,6 +94,7 @@ export default function WatchLayout({
               ref={playerRef}
               src={src}
               subtitles={subtitles}
+              cuesByLang={cuesByLang}
               poster={
                 THUMBNAIL_CAPTURE_ENABLED
                   ? persistedThumbnailUrl(title)
@@ -108,6 +113,7 @@ export default function WatchLayout({
               currentTime={currentTime}
               onSeek={(time) => playerRef.current?.seekTo(time)}
               lang={transcriptLang}
+              cues={cuesByLang[transcriptLang]}
               onLangChange={handleActiveLangChange}
             />
           </div>
@@ -124,6 +130,7 @@ export default function WatchLayout({
                 currentTime={currentTime}
                 onSeek={(time) => playerRef.current?.seekTo(time)}
                 lang={transcriptLang}
+              cues={cuesByLang[transcriptLang]}
                 onLangChange={handleActiveLangChange}
               />
             </div>
@@ -140,6 +147,7 @@ export default function WatchLayout({
               currentTime={currentTime}
               onSeek={(time) => playerRef.current?.seekTo(time)}
               lang={transcriptLang}
+              cues={cuesByLang[transcriptLang]}
               onLangChange={handleActiveLangChange}
             />
           </div>

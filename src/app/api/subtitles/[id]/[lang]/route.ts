@@ -17,15 +17,16 @@ function srtToVtt(srt: string): string {
   return `WEBVTT\n\n${body}`;
 }
 
+// The language is a path segment rather than a ?lang= query because CDN
+// caches (Netlify's edge, at least) may ignore the query string, which made
+// every language share whichever track was cached first.
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  _request: Request,
+  { params }: { params: Promise<{ id: string; lang: string }> }
 ) {
-  const { id } = await params;
+  const { id, lang } = await params;
   const video = VIDEOS.find((v) => v.id === id);
-  const lang = new URL(request.url).searchParams.get("lang");
-  const subtitle =
-    video?.subtitles?.find((s) => s.lang === lang) ?? video?.subtitles?.[0];
+  const subtitle = video?.subtitles?.find((s) => s.lang === lang);
 
   if (!subtitle) {
     return new Response("Not found", { status: 404 });

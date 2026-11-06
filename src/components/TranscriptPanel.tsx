@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SubtitleOption } from "@/components/VideoPlayer";
-import { parseVtt, type SubtitleCue as TranscriptCue } from "@/lib/parseVtt";
+import type { SubtitleCue as TranscriptCue } from "@/lib/parseVtt";
+
+const NO_CUES: TranscriptCue[] = [];
 
 type TranscriptPanelProps = {
   subtitles?: SubtitleOption[];
+  /** Cues for `lang`, shared with the player; undefined while loading. */
+  cues?: TranscriptCue[];
   currentTime: number;
   onSeek: (time: number) => void;
   lang: string;
@@ -21,12 +25,14 @@ function formatTimestamp(seconds: number): string {
 
 export default function TranscriptPanel({
   subtitles = [],
+  cues: loadedCues,
   currentTime,
   onSeek,
   lang,
   onLangChange,
 }: TranscriptPanelProps) {
-  const [cues, setCues] = useState<TranscriptCue[]>([]);
+  const loading = loadedCues === undefined;
+  const cues = loadedCues ?? NO_CUES;
   const [userScrolling, setUserScrolling] = useState(false);
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState(false);
@@ -47,28 +53,6 @@ export default function TranscriptPanel({
       if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    const subtitle = subtitles.find((s) => s.lang === lang);
-    if (!subtitle) {
-      setCues([]);
-      return;
-    }
-
-    let cancelled = false;
-    fetch(subtitle.src)
-      .then((res) => res.text())
-      .then((text) => {
-        if (!cancelled) setCues(parseVtt(text));
-      })
-      .catch(() => {
-        if (!cancelled) setCues([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [lang, subtitles]);
 
   const activeIndex = useMemo(
     () => cues.findIndex((cue) => currentTime >= cue.start && currentTime < cue.end),
@@ -161,7 +145,7 @@ export default function TranscriptPanel({
       >
         {cues.length === 0 ? (
           <p className="px-2 py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
-            Loading transcript...
+            {loading ? "Loading transcript..." : "Transcript unavailable."}
           </p>
         ) : filteredEntries.length === 0 ? (
           <p className="px-2 py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">

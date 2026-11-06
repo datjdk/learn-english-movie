@@ -44,7 +44,7 @@ export default async function WatchPage({
         subtitles={video.subtitles?.map((s) => ({
           lang: s.lang,
           label: s.label,
-          src: `/api/subtitles/${video.id}?lang=${s.lang}`,
+          src: `/api/subtitles/${video.id}/${s.lang}`,
         }))}
         info={
           <>
