@@ -118,35 +118,15 @@ export default function TranscriptPanel({
         <h2 className="text-sm font-semibold text-black dark:text-white">
           Transcript
         </h2>
-        <div className="flex items-center gap-2">
-          {subtitles.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              {subtitles.map((subtitle) => (
-                <button
-                  key={subtitle.lang}
-                  type="button"
-                  onClick={() => onLangChange(subtitle.lang)}
-                  aria-pressed={lang === subtitle.lang}
-                  className={
-                    lang === subtitle.lang
-                      ? "rounded-full bg-white px-2.5 py-0.5 text-xs font-medium text-black"
-                      : "rounded-full border border-black/[.15] px-2.5 py-0.5 text-xs font-medium text-black hover:bg-black/[.05] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.08]"
-                  }
-                >
-                  {subtitle.lang.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            aria-expanded={!collapsed}
-            className="rounded-full border border-black/[.15] px-2.5 py-0.5 text-xs font-medium text-black hover:bg-black/[.05] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.08]"
-          >
-            {collapsed ? "Show" : "Hide"}
-          </button>
-        </div>
+        {/* Language follows the subtitle selection on the player. */}
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          className="rounded-full border border-black/[.15] px-2.5 py-0.5 text-xs font-medium text-black hover:bg-black/[.05] dark:border-white/[.2] dark:text-white dark:hover:bg-white/[.08]"
+        >
+          {collapsed ? "Show" : "Hide"}
+        </button>
       </div>
 
       {!collapsed && (
