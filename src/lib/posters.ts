@@ -10,11 +10,16 @@ const SEARCH_TIMEOUT_MS = 2000;
 // host to this embed host; linking to it directly skips that extra hop.
 const POSTER_HOST = "posters.movieposterdb.com";
 export const POSTER_EMBED_ORIGIN = "https://embed-gate.movieposterdb.com";
+// The file name's prefix picks the size: the search API returns t_ (100px
+// wide); s_ is 200px (l_ would be 300px but ~2x the bytes).
+const THUMB_PREFIX = /\/t_([^/]+)$/;
+const POSTER_SIZE_PREFIX = "/s_$1";
 
 function embedUrl(thumbUrl: string) {
   const url = new URL(thumbUrl);
   if (url.host !== POSTER_HOST) return thumbUrl;
-  return `${POSTER_EMBED_ORIGIN}${url.pathname}${url.search}`;
+  const path = url.pathname.replace(THUMB_PREFIX, POSTER_SIZE_PREFIX);
+  return `${POSTER_EMBED_ORIGIN}${path}${url.search}`;
 }
 
 // Search query -> first result's thumbUrl (null when nothing was found),
