@@ -10,8 +10,8 @@ const VISIBLE_PAGES = 5;
 
 function pageButtonClass(active: boolean) {
   return active
-    ? "h-8 w-8 rounded-full bg-white text-sm font-medium text-black"
-    : "h-8 w-8 rounded-full border border-black/[.15] text-sm font-medium text-black dark:border-white/[.2] dark:text-white";
+    ? "h-8 w-8 cursor-pointer rounded-full bg-white text-sm font-medium text-black"
+    : "h-8 w-8 cursor-pointer rounded-full border border-black/[.15] text-sm font-medium text-black dark:border-white/[.2] dark:text-white";
 }
 
 export default function Pagination({ page, totalPages, onChange }: PaginationProps) {
@@ -33,7 +33,7 @@ export default function Pagination({ page, totalPages, onChange }: PaginationPro
           type="button"
           onClick={() => onChange(page - 1)}
           disabled={page <= 1}
-          className="rounded-full border border-black/[.15] px-4 py-1.5 text-sm font-medium text-black disabled:opacity-40 dark:border-white/[.2] dark:text-white"
+          className="cursor-pointer rounded-full border border-black/[.15] px-4 py-1.5 text-sm font-medium text-black disabled:cursor-default disabled:opacity-40 dark:border-white/[.2] dark:text-white"
         >
           Previous
         </button>
@@ -64,7 +64,7 @@ export default function Pagination({ page, totalPages, onChange }: PaginationPro
           type="button"
           onClick={() => onChange(page + 1)}
           disabled={page >= totalPages}
-          className="rounded-full border border-black/[.15] px-4 py-1.5 text-sm font-medium text-black disabled:opacity-40 dark:border-white/[.2] dark:text-white"
+          className="cursor-pointer rounded-full border border-black/[.15] px-4 py-1.5 text-sm font-medium text-black disabled:cursor-default disabled:opacity-40 dark:border-white/[.2] dark:text-white"
         >
           Next
         </button>

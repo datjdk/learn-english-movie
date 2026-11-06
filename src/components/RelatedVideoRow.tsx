@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useVideoFrameThumbnail } from "@/lib/useVideoFrameThumbnail";
+import {
+  THUMBNAIL_CAPTURE_ENABLED,
+  useVideoFrameThumbnail,
+} from "@/lib/useVideoFrameThumbnail";
+import { usePosterThumbnail } from "@/lib/usePosterThumbnail";
 import { VideoThumbnail } from "@/components/VideoThumbnail";
 import type { Video } from "@/lib/videos";
 
 export default function RelatedVideoRow({ video }: { video: Video }) {
-  const thumbnail = useVideoFrameThumbnail(video.id, video.title, video.src);
+  const frameThumbnail = useVideoFrameThumbnail(video.id, video.title, video.src);
+  const posterThumbnail = usePosterThumbnail(video.id, !THUMBNAIL_CAPTURE_ENABLED);
+  const thumbnail = frameThumbnail ?? posterThumbnail;
 
   const content = (
     <div className="flex gap-2">

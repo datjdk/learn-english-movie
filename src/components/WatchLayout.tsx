@@ -9,11 +9,16 @@ import VideoPlayer, {
 } from "@/components/VideoPlayer";
 import TheaterModeIcon from "@/components/TheaterModeIcon";
 import TranscriptPanel from "@/components/TranscriptPanel";
-import { persistedThumbnailUrl } from "@/lib/useVideoFrameThumbnail";
+import {
+  persistedThumbnailUrl,
+  THUMBNAIL_CAPTURE_ENABLED,
+} from "@/lib/useVideoFrameThumbnail";
 
 type WatchLayoutProps = {
   title: string;
   src: string;
+  /** Poster resolved on the server, shown until playback starts. */
+  poster?: string | null;
   subtitles?: SubtitleOption[];
   info: ReactNode;
   comments: ReactNode;
@@ -23,6 +28,7 @@ type WatchLayoutProps = {
 export default function WatchLayout({
   title,
   src,
+  poster,
   subtitles,
   info,
   comments,
@@ -84,7 +90,11 @@ export default function WatchLayout({
               ref={playerRef}
               src={src}
               subtitles={subtitles}
-              poster={persistedThumbnailUrl(title)}
+              poster={
+                THUMBNAIL_CAPTURE_ENABLED
+                  ? persistedThumbnailUrl(title)
+                  : poster ?? undefined
+              }
               controlsExtra={theaterButton}
               onTimeUpdate={setCurrentTime}
               activeLang={activeLang}

@@ -13,6 +13,10 @@ const DEFAULT_SEEK_SECONDS = 4.5 * 60;
 const THUMBNAIL_MAX_WIDTH = 640;
 const THUMBNAIL_MAX_HEIGHT = 320;
 const THUMBNAIL_QUALITY = 0.5;
+// Temporarily disabled: when false, the hook always returns null so callers
+// render the default placeholder, and no saved thumbnail is sent to the
+// browser. Flip back to true to re-enable capture.
+export const THUMBNAIL_CAPTURE_ENABLED = false;
 
 /**
  * Best-effort thumbnail: reuses a frame previously saved to
@@ -32,7 +36,7 @@ export function useVideoFrameThumbnail(
   const [thumbnail, setThumbnail] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!src) return;
+    if (!THUMBNAIL_CAPTURE_ENABLED || !src) return;
     const videoSrc = src;
 
     let cancelled = false;

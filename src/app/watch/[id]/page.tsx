@@ -1,3 +1,4 @@
+import { preconnect } from "react-dom";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import RelatedVideosList from "@/components/RelatedVideosList";
@@ -6,6 +7,7 @@ import WatchLayout from "@/components/WatchLayout";
 import Logo from "@/components/Logo";
 import WatchSearchBar from "@/components/WatchSearchBar";
 import { VIDEOS, nextVideos } from "@/lib/videos";
+import { POSTER_EMBED_ORIGIN, findPosterOrNull } from "@/lib/posters";
 
 export default async function WatchPage({
   params,
@@ -18,6 +20,8 @@ export default async function WatchPage({
   if (!video?.src) notFound();
 
   const related = nextVideos(VIDEOS, id);
+  preconnect(POSTER_EMBED_ORIGIN);
+  const poster = await findPosterOrNull(video);
 
   return (
     <div className="flex flex-1 flex-col bg-white dark:bg-black">
@@ -29,6 +33,7 @@ export default async function WatchPage({
       <WatchLayout
         title={video.title}
         src={video.src}
+        poster={poster}
         subtitles={video.subtitles?.map((s) => ({
           lang: s.lang,
           label: s.label,

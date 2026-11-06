@@ -154,6 +154,9 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
   const [cuesByLang, setCuesByLang] = useState<Record<string, SubtitleCue[]>>({});
 
   const [isPlaying, setIsPlaying] = useState(false);
+  // The src that has played at least once; the poster cover shows until then.
+  const [startedSrc, setStartedSrc] = useState<string | null>(null);
+  const hasStarted = startedSrc === src;
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.6);
@@ -198,7 +201,10 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
     const video = videoRef.current;
     if (!video) return;
 
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      setStartedSrc(src);
+    };
     const handlePause = () => setIsPlaying(false);
     const handleLoadedMetadata = () => setDuration(video.duration || 0);
     const handleDurationChange = () => setDuration(video.duration || 0);
@@ -336,8 +342,13 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
-    if (video.paused) video.play();
-    else video.pause();
+    if (video.paused) {
+      video.play().catch(() => {
+        // Not ready yet or blocked by the browser — the user can press again.
+      });
+    } else {
+      video.pause();
+    }
   };
 
   const toggleMute = () => {
@@ -385,10 +396,31 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
       >
         <video
           ref={videoRef}
-          poster={poster}
           onClick={togglePlay}
           className="aspect-video w-full"
         />
+
+        {!hasStarted && (
+          <button
+            type="button"
+            onClick={togglePlay}
+            aria-label="Play"
+            className="group absolute inset-0 flex cursor-pointer items-center justify-center bg-black"
+          >
+            {poster && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={poster}
+                alt=""
+                fetchPriority="high"
+                className="absolute inset-0 h-full w-full object-contain"
+              />
+            )}
+            <span className="relative flex h-16 w-16 items-center justify-center rounded-full bg-black/60 text-white ring-2 ring-white/80 backdrop-blur-sm transition-transform duration-150 group-hover:scale-110 group-hover:bg-red-600 sm:h-20 sm:w-20">
+              <PlayIcon className="ml-1 h-8 w-8 sm:h-10 sm:w-10" />
+            </span>
+          </button>
+        )}
 
         {displayedLangs.length > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-14 flex flex-col items-center gap-1 px-2 sm:bottom-20 sm:gap-1.5 sm:px-4">
