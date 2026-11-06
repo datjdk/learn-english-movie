@@ -397,6 +397,9 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
         <video
           ref={videoRef}
           onClick={togglePlay}
+          // Keep playback inside the page; iOS Safari otherwise forces
+          // fullscreen on play. The player's own fullscreen button still works.
+          playsInline
           className="aspect-video w-full"
         />
 

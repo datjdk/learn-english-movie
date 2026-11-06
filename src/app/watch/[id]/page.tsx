@@ -8,6 +8,13 @@ import Logo from "@/components/Logo";
 import WatchSearchBar from "@/components/WatchSearchBar";
 import { VIDEOS, nextVideos } from "@/lib/videos";
 import { POSTER_EMBED_ORIGIN, findPosterOrNull } from "@/lib/posters";
+import type { Metadata } from "next";
+
+// The video host rejects HLS requests whose Referer is any site other than
+// its own (or localhost), so don't send one from the watch page.
+export const metadata: Metadata = {
+  referrer: "no-referrer",
+};
 
 export default async function WatchPage({
   params,
