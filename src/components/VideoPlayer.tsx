@@ -175,13 +175,22 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
     video.volume = 0.6;
 
     let hls: Hls | null = null;
+    let cancelled = false;
 
-    if (!isHlsSource(src) || video.canPlayType("application/vnd.apple.mpegurl")) {
+    if (!isHlsSource(src)) {
       video.src = src;
     } else {
+      // Prefer hls.js wherever it runs: recent Chrome reports native HLS
+      // support but then fails to play these streams. Native playback is
+      // only the fallback, for iOS Safari.
       import("hls.js").then(({ default: Hls }) => {
+        if (cancelled) return;
         if (!Hls.isSupported()) {
-          setError("HLS playback is not supported in this browser.");
+          if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = src;
+          } else {
+            setError("HLS playback is not supported in this browser.");
+          }
           return;
         }
         hls = new Hls();
@@ -196,6 +205,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
     }
 
     return () => {
+      cancelled = true;
       hls?.destroy();
     };
   }, [src]);

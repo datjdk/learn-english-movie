@@ -103,12 +103,18 @@ export function useVideoFrameThumbnail(
       });
       video.addEventListener("seeked", capture);
 
-      if (!isHlsSource(videoSrc) || video.canPlayType("application/vnd.apple.mpegurl")) {
+      if (!isHlsSource(videoSrc)) {
         video.src = videoSrc;
       } else {
+        // hls.js first, native only as a fallback (see VideoPlayer).
         import("hls.js").then(({ default: HlsCtor }) => {
           if (cancelled || !video) return;
-          if (!HlsCtor.isSupported()) return;
+          if (!HlsCtor.isSupported()) {
+            if (video.canPlayType("application/vnd.apple.mpegurl")) {
+              video.src = videoSrc;
+            }
+            return;
+          }
           hls = new HlsCtor();
           hls.loadSource(videoSrc);
           hls.attachMedia(video);
