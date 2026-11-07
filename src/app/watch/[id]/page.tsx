@@ -7,6 +7,7 @@ import WatchLayout from "@/components/WatchLayout";
 import Logo from "@/components/Logo";
 import WatchSearchBar from "@/components/WatchSearchBar";
 import { VIDEOS, nextVideos } from "@/lib/videos";
+import { subtitleTrackUrl } from "@/lib/subtitleUrl";
 import { POSTER_EMBED_ORIGIN, findPosterOrNull } from "@/lib/posters";
 import type { Metadata } from "next";
 
@@ -44,7 +45,7 @@ export default async function WatchPage({
         subtitles={video.subtitles?.map((s) => ({
           lang: s.lang,
           label: s.label,
-          src: `/api/subtitles/${video.id}/${s.lang}`,
+          src: subtitleTrackUrl(video.id, s.lang),
         }))}
         info={
           <>

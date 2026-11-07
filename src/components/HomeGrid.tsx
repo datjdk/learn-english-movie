@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import VideoCard from "@/components/VideoCard";
 import SeriesCard from "@/components/SeriesCard";
 import type { CatalogEntry, CatalogPage } from "@/lib/catalogPage";
+import { subtitleTrackUrl } from "@/lib/subtitleUrl";
 
 // Cards above the fold on a phone (first two rows of two columns).
 const PRIORITY_CARDS = 4;
@@ -14,6 +15,28 @@ const LOAD_AHEAD_MARGIN = "600px";
 const MIN_LOADING_MS = 500;
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Subtitle URLs already requested on this page load, shared across searches.
+const prefetchedSubtitles = new Set<string>();
+
+/**
+ * Loads a card's subtitle tracks into the HTTP cache (and the CDN's) so the
+ * watch page's transcript shows straight away. A serie card prefetches its
+ * first episode, which is the one its link leads to first.
+ */
+function prefetchSubtitles(entries: CatalogEntry[]) {
+  for (const { item } of entries) {
+    for (const subtitle of item.video.subtitles ?? []) {
+      const url = subtitleTrackUrl(item.video.id, subtitle.lang);
+      if (prefetchedSubtitles.has(url)) continue;
+      prefetchedSubtitles.add(url);
+      // Read the body so the response is stored in full.
+      fetch(url, { priority: "low" })
+        .then((res) => res.text())
+        .catch(() => prefetchedSubtitles.delete(url));
+    }
+  }
+}
 
 /**
  * Home catalog grid that loads further pages from /api/catalog as the user
@@ -62,6 +85,10 @@ export default function HomeGrid({
       setLoading(false);
     }
   }, [query]);
+
+  useEffect(() => {
+    prefetchSubtitles(entries);
+  }, [entries]);
 
   // Re-observe after every page: if the sentinel is still on screen (tall
   // window, short page) the fresh observer fires again and loads the next.
