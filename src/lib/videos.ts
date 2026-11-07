@@ -73,7 +73,11 @@ export function matchesCatalogQuery(item: CatalogItem, query: string): boolean {
   return item.serie.toLowerCase().includes(q);
 }
 
+// links.json has nulls the Video type doesn't allow (title, duration, ...).
+type RawVideo = Omit<Video, "title"> & { title: string | null };
+
 // Drop entries missing a title, a video source, or any subtitles.
-export const VIDEOS: Video[] = (videosData as Video[]).filter(
-  (v) => v.title && v.src && v.subtitles && v.subtitles.length > 0
+export const VIDEOS: Video[] = (videosData as unknown as RawVideo[]).filter(
+  (v): v is Video =>
+    !!v.title && !!v.src && !!v.subtitles && v.subtitles.length > 0
 );
