@@ -60,6 +60,10 @@ export default async function Home({
       </header>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-4 sm:py-6">
+        <h2 className="mb-3 text-xl font-bold text-red-600">
+          {query && `${filtered.length} of `}
+          {catalog.length} Movies
+        </h2>
         {filtered.length === 0 ? (
           <p className="mt-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
             No videos found.

@@ -1,4 +1,5 @@
-import videosData from "@/lib/videos.json";
+// import videosData from "@/lib/videos.json";
+import videosData from "@/lib/links.json";
 
 export type Subtitle = {
   lang: string;
@@ -15,6 +16,7 @@ export type Video = {
   group: string,
   thumbColor: string;
   src?: string;
+  poster?: string | null;
   description?: string;
   subtitles?: Subtitle[];
 };
@@ -71,4 +73,7 @@ export function matchesCatalogQuery(item: CatalogItem, query: string): boolean {
   return item.serie.toLowerCase().includes(q);
 }
 
-export const VIDEOS: Video[] = videosData as Video[];
+// Drop entries missing a title, a video source, or any subtitles.
+export const VIDEOS: Video[] = (videosData as Video[]).filter(
+  (v) => v.title && v.src && v.subtitles && v.subtitles.length > 0
+);

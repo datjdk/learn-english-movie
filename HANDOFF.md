@@ -1,75 +1,81 @@
-# Handoff — Video list & video player pages
+# Handoff — learn-english-movie ("THỊT KHO TÀU")
 
-Status: index (homepage) page and the watch/video-playing page are functionally
-complete for the two real videos. This doc summarizes what's in place and what's
-left if picking this up later.
+Status as of 2026-11-07: catalog home page, series/group pages and the watch
+page (player + subtitles + transcript) all work, and the app is deployed on
+Netlify at **https://thitkhotau.netlify.app** (auto-deploys from `main`).
+Latest commit: `6c51fa8 use larger poster`.
 
-## What was completed
+## Running it
 
-- **Homepage (`src/app/page.tsx`)** — YouTube-style simplified layout: sticky
-  search header (filters by title/channel, client-side) + responsive grid of
-  `VideoCard`s (`grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`).
-  Empty-state message when search matches nothing.
-- **Watch page (`src/app/watch/[id]/page.tsx`)** — dynamic route, YouTube-style
-  two-column layout: player + title + channel row on the left, "Up next"
-  sidebar (`RelatedVideoRow` list of the other videos) on the right. Calls
-  `notFound()` if the id doesn't exist or has no `src`.
-- **Video playback (`src/components/VideoPlayer.tsx`)** — supports both HLS
-  (`.m3u8` via `hls.js`, dynamically imported, with native fallback for
-  Safari) and plain files (`.mp4`) through `isHlsSource()`. Multi-language
-  subtitles via a `<select>` that toggles `TextTrack.mode` between
-  `showing`/`hidden` rather than relying on the browser's native CC menu.
-  Shows a fatal-error message on unrecoverable HLS errors.
-- **Subtitle proxy (`src/app/api/subtitles/[id]/route.ts`)** — same-origin
-  proxy per video id + `?lang=`, converts `.srt` → WebVTT and decodes HTML
-  entities (fixes a real bug where one subtitle source had literal `--&gt;`
-  instead of `-->`, silently breaking cue parsing).
-- **Thumbnails** — `useVideoFrameThumbnail(id, src, seekSeconds?)`
-  (`src/lib/useVideoFrameThumbnail.ts`): checks `public/thumbnails/{id}.jpg`
-  via `HEAD` first; if missing, captures a frame client-side (off-screen
-  `<video>` + canvas, seeked to `DEFAULT_SEEK_SECONDS` = 1.5min) and persists
-  it via `POST /api/thumbnails/{id}` (`src/app/api/thumbnails/[id]/route.ts`,
-  validates `id` against `VIDEOS` before writing to disk). Falls back to a
-  solid `thumbColor` block (`VideoThumbnail`) if no frame is available (e.g.
-  CORS-tainted canvas, or a placeholder video with no `src`).
-- **Content model (`src/lib/videos.ts`)** — single `VIDEOS` array is the only
-  source of truth, drives both the homepage grid and the dynamic watch/
-  subtitle/thumbnail routes. `Video` type: `id, title, channel, duration,
-  thumbColor, href?, src?, subtitles?`.
-- **CLAUDE.md** — documents the project, commands, architecture, and a
-  Workflow rule: don't run dev server/build/lint/browser checks unless
-  explicitly asked.
+- No `nvm` on this machine — it uses **fnm**. In PowerShell:
+  `fnm env --use-on-cd --shell powershell | Out-String | Invoke-Expression; fnm use 24`
+  then `npm run dev` (dev) or `npm run build; npm run start` (production).
+- On the LAN the app is reachable at `http://172.16.0.2:3000` (used for phone
+  testing).
+- After a rebuild, open tabs must be **hard-reloaded** (Ctrl+Shift+R): an old
+  tab references JS chunks that no longer exist, so buttons silently do
+  nothing. This caused one false "play button broken" report.
+- Git has no identity configured on this machine. Commit with
+  `git -c user.name="Dat Truong" -c user.email="tvtd995a3@gmail.com" commit …`.
+  Don't add any Claude/AI attribution to commit messages (user's request).
 
-## Key files
+## Architecture
 
-| File | Purpose |
-|---|---|
-| `src/lib/videos.ts` | Content source of truth (`VIDEOS` array, `Video`/`Subtitle` types) |
-| `src/app/page.tsx` | Homepage: search + grid |
-| `src/app/watch/[id]/page.tsx` | Watch page: player + up-next sidebar |
-| `src/components/VideoPlayer.tsx` | HLS/mp4 playback + subtitle language select |
-| `src/components/VideoCard.tsx` | Grid card (homepage) |
-| `src/components/RelatedVideoRow.tsx` | Sidebar row (watch page) |
-| `src/components/VideoThumbnail.tsx` | Shared thumbnail-or-color-block + duration badge |
-| `src/lib/useVideoFrameThumbnail.ts` | Thumbnail capture/persistence hook |
-| `src/lib/isHlsSource.ts` | `.m3u8` vs. plain-file detection |
-| `src/app/api/subtitles/[id]/route.ts` | Subtitle proxy: SRT→VTT + HTML-entity decode |
-| `src/app/api/thumbnails/[id]/route.ts` | POST: saves captured frame to `public/thumbnails/{id}.jpg` |
+| Area | Files | Notes |
+|---|---|---|
+| Content | `src/lib/videos.json` (470 entries), `src/lib/videos.ts` | Single source of truth. Episodes are grouped by `serie`; `buildCatalog()` collapses a series into one card. Server-only — never import it into client components (it was ~220 KB of client JS). |
+| Home | `src/app/page.tsx`, `src/components/HomeControls.tsx` | **Server-rendered.** Reads `?q=`/`?page=`, paginates 12 per page, resolves posters on the server, renders 9:16 portrait cards in a 2/3/4/6-column grid. Search (debounced 250 ms) and pagination are small client components that update the URL. |
+| Posters | `src/lib/posters.ts`, `src/app/api/posters/[id]/route.ts`, `src/lib/usePosterThumbnail.ts` | Searches `movieposterdb.com/api/palette/search` with `serie \|\| title` minus `(YYYY)`, takes the **first result's** `thumbUrl`, swaps `t_` → `s_` (200×300, ~20 KB) and the host to `embed-gate.movieposterdb.com` (the posters host 301-redirects other-site requests there). In-memory cache per server process, 2 s timeout, de-duplicated in-flight requests; next page is pre-warmed. Cards on series/group pages still look posters up client-side via the API route. |
+| Frame thumbnails | `src/lib/useVideoFrameThumbnail.ts`, `src/app/api/thumbnails/[id]/route.ts` | **Disabled** (`THUMBNAIL_CAPTURE_ENABLED = false`). When enabled it grabs a canvas frame from the stream and saves it to `public/thumbnails/` (gitignored). |
+| Watch page | `src/app/watch/[id]/page.tsx`, `src/components/WatchLayout.tsx`, `src/components/VideoPlayer.tsx` | Server resolves the poster; player shows it as a cover with a big play button until first play. `playsInline` so iPhones don't force fullscreen. Theater mode, custom controls, Off/VI/EN/Dual subtitle buttons. |
+| Subtitles | `src/app/api/subtitles/[id]/[lang]/route.ts`, `src/lib/useSubtitleCues.ts`, `src/lib/parseVtt.ts` | Proxy converts SRT→VTT, decodes entities, strips toomva lines. Unknown lang → 404. `useSubtitleCues` loads every track **once** and shares the cues between the player overlay and the transcript. |
+| Transcript | `src/components/TranscriptPanel.tsx` | Follows the player's subtitle selection (no buttons of its own); defaults to EN; with Off/Dual it keeps the last single language. Click a line to seek. |
+| Other pages | `src/app/series/[serie]/page.tsx`, `src/app/group/[group]/page.tsx` | 16:9 `VideoCard` grids. |
+| Comments | `src/components/CommentSection.tsx` | Stored in the viewer's `localStorage` only. |
 
-## Known gaps / not done
+## Things that bit us (don't undo these)
 
-- **8 placeholder videos** (ids `"1"`–`"8"` in `videos.ts`) have no `src`,
-  `href`, or `subtitles` — they render as color blocks only, not clickable,
-  no thumbnail capture (hook no-ops without `src`). Only ids `"0"` (Me Before
-  You) and `"9"` (Letters to Juliet) are real, playable content.
-- Thumbnail persistence (`/api/thumbnails/[id]`) has not been verified
-  end-to-end against a running dev server — implemented but unverified per
-  the no-unrequested-testing workflow rule.
-- No test runner configured in this project.
+- **Subtitle language is a path segment, not `?lang=`.** Netlify's CDN cache
+  served one cached track for every `?lang=` value, so VI returned English
+  (and vice versa). See commit `85ac533`. Anything cached publicly must vary by
+  path, or send `Netlify-Vary: query=…`.
+- **`referrer: "no-referrer"` on the watch page** (`metadata` export). toomva's
+  HLS host returns 403 when the `Referer` is any site other than localhost —
+  this made HLS videos fail on the phone and on Netlify. This deliberately
+  sidesteps toomva's hotlink block; they can close it at any time (e.g. signed
+  URLs), at which point HLS playback breaks for everyone. MP4 sources aren't
+  blocked.
+- Poster `object-contain` (not `cover`) — the user wants the full poster, never
+  cropped or stretched.
 
-## Content sources note
+## Performance (Lighthouse mobile, local production build)
 
-Video/subtitle URLs currently point at `toomva.net`/`toomva.com`, which look
-like unauthorized mirrors rather than licensed sources. Fine for personal/local
-study use as built here, but worth swapping to licensed sources before sharing
-or deploying this beyond personal use.
+Score ~90, first paint 0.8 s, speed index 0.8 s, LCP ~3.7 s (first poster
+image from movieposterdb), CLS 0. Before the server-rendering work it was 84
+with LCP 4.5 s. The remaining LCP is the third-party image download; serving
+posters from our own origin (e.g. `next/image`) would cut it but means
+proxying/copying movieposterdb's images.
+
+## Known gaps / ideas
+
+- **Content licensing:** video and subtitle files come from toomva
+  (`cloud1/cloud2.toomva.net`, `toomva.com/subs`), which appear to be
+  unlicensed mirrors of commercial films; posters come from movieposterdb.
+  Fine for personal study, a real problem for a public site.
+- "First search result" posters can be wrong for vague titles (e.g. "Remember
+  Me", "The Ledge"); some are non-English posters (The Green Mile shows the
+  Vietnamese "DẶM XANH" poster). Filtering by year would help.
+- Data issues in `videos.json`: typo "The Book theif" (id 447); many entries
+  have empty `duration`, `description` and `thumbColor` (a `#292927` fallback
+  covers the color).
+- The player's fullscreen button uses `requestFullscreen()` on the container,
+  which iPhone Safari doesn't support — needs a `webkitEnterFullscreen()`
+  fallback on the `<video>`.
+- No user-visible error when a stream is blocked or fails (just a black
+  player).
+- `npm run lint` has pre-existing issues: `CommentSection.tsx`
+  (`set-state-in-effect` error), unused `Link` import in
+  `series/[serie]/page.tsx`, an unused eslint-disable in `TranscriptPanel.tsx`.
+- No test runner. Ad-hoc browser checks were done with puppeteer-core /
+  Playwright (WebKit for iPhone emulation) from a scratch directory, not part
+  of the repo.

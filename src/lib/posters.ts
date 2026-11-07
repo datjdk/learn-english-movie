@@ -49,10 +49,13 @@ async function searchPoster(query: string): Promise<string | null> {
 }
 
 /**
- * First movieposterdb search result for the video's serie (or title when it
- * has none), with the release year removed. Throws on upstream failure.
+ * The video's own poster when it has one; otherwise the first movieposterdb
+ * search result for its serie (or title when it has none), with the release
+ * year removed. Throws on upstream failure.
  */
 export async function findPoster(video: Video): Promise<string | null> {
+  if (video.poster) return embedUrl(video.poster);
+
   const query = searchQuery(video.serie || video.title);
   if (posterCache.has(query)) return posterCache.get(query) ?? null;
 

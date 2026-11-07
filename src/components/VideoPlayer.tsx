@@ -39,6 +39,7 @@ export const SUBTITLES_DUAL = "dual";
 const OFF = SUBTITLES_OFF;
 const DUAL = SUBTITLES_DUAL;
 const MAX_CUE_DISPLAY_SECONDS = 3;
+const SHOW_DUAL_OPTION = false;
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -475,7 +476,7 @@ const VideoPlayer = forwardRef<VideoPlayerHandle, VideoPlayerProps>(function Vid
                       {subtitle.lang.toUpperCase()}
                     </button>
                   ))}
-                  {subtitles.length > 1 && (
+                  {SHOW_DUAL_OPTION && subtitles.length > 1 && (
                     <button
                       type="button"
                       onClick={() => onActiveLangChange(DUAL)}
